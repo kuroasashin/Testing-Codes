@@ -17,5 +17,5 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Admin credentials (store securely in production)
-const ADMIN_EMAIL = "admin@yourdomain.com";
+const ADMIN_EMAIL = "tan123kee@gmail.com";
 const ADMIN_OTP = "123456"; // Change this in production!
