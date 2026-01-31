@@ -25,3 +25,20 @@
         </div>
     </div>
 </div>
+<script>
+// Debug script
+window.addEventListener('load', () => {
+    console.log("=== APP DEBUG INFO ===");
+    console.log("Firebase:", typeof firebase !== 'undefined' ? "✓ Loaded" : "✗ NOT LOADED");
+    console.log("Auth:", typeof auth !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
+    console.log("Firestore:", typeof db !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
+    console.log("Current User:", currentUser ? currentUser.email : "None");
+    console.log("Is Admin:", isAdmin);
+    console.log("======================");
+    
+    // Test Firebase connection
+    if (typeof firebase !== 'undefined') {
+        console.log("✓ Firebase SDK version:", firebase.SDK_VERSION);
+    }
+});
+</script>
