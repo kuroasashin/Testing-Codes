@@ -51,7 +51,8 @@
     <div id="loginScreen" class="login-container">
         <div class="login-box">
             <h2>Attendance Management System</h2>
-            
+
+            <button onclick="testAppLoad()">🧪 TEST APP LOAD</button>
             <!-- User Login Section -->
             <div id="userLogin">
                 <button id="googleLoginBtn" class="google-btn">
@@ -901,6 +902,13 @@
         console.log("Auth:", typeof auth !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
         console.log("Firestore:", typeof db !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
         console.log("======================");
+
+        function testAppLoad() {
+            console.log("🧪 Testing app load...");
+            loginScreen.style.display = 'none';
+            appContainer.style.display = 'block';
+            console.log("🧪 Test complete - app should be visible now");
+        }
     </script>
 </body>
 </html>
