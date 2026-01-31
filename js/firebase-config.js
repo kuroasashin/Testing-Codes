@@ -1,11 +1,12 @@
 // Initialize Firebase
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAstgKz-B4y8JQ9itjps3X0Bi9Ejp_IDic",
+  authDomain: "attendance-app-b925d.firebaseapp.com",
+  projectId: "attendance-app-b925d",
+  storageBucket: "attendance-app-b925d.firebasestorage.app",
+  messagingSenderId: "426942187843",
+  appId: "1:426942187843:web:9da18fa850795fff6b47f6",
+  measurementId: "G-W51CT4P4MD"
 };
 
 // Initialize Firebase
