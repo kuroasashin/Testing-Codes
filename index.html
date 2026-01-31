@@ -6,24 +6,22 @@
     <title>Attendance Management System</title>
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- ⚠️ LOAD FIREBASE SDK FIRST - BEFORE ANYTHING ELSE ⚠️ -->
+    <!-- LOAD FIREBASE SDK FIRST -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
-    <!-- ⚠️ LOAD FIREBASE CONFIG IMMEDIATELY AFTER SDK ⚠️ -->
     <script>
         // ============================================
         // FIREBASE CONFIGURATION - REPLACE WITH YOURS
         // ============================================
         const firebaseConfig = {
-          apiKey: "AIzaSyAstgKz-B4y8JQ9itjps3X0Bi9Ejp_IDic",
-          authDomain: "attendance-app-b925d.firebaseapp.com",
-          projectId: "attendance-app-b925d",
-          storageBucket: "attendance-app-b925d.firebasestorage.app",
-          messagingSenderId: "426942187843",
-          appId: "1:426942187843:web:9da18fa850795fff6b47f6",
-          measurementId: "G-W51CT4P4MD"
+            apiKey: "AIzaSyC...", // ⚠️ REPLACE WITH YOUR API KEY
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
         };
 
         // Initialize Firebase
@@ -191,11 +189,8 @@
         </div>
     </div>
 
-    <!-- ⚠️ LOAD ALL OTHER SCRIPTS AT THE END ⚠️ -->
+    <!-- ALL SCRIPTS AT THE END -->
     <script>
-        // ============================================
-        // AUTHENTICATION MODULE
-        // ============================================
         console.log("✓ Starting app initialization...");
 
         // DOM Elements
@@ -216,36 +211,53 @@
         // FIREBASE AUTH STATE LISTENER
         // ============================================
         auth.onAuthStateChanged(async (user) => {
-            console.log("Auth state changed:", user ? user.email : "No user");
+            console.log("=== AUTH STATE CHANGED ===");
+            console.log("User:", user ? user.email : "null");
+            console.log("Login screen display:", loginScreen.style.display);
+            console.log("App container display:", appContainer.style.display);
             
             if (user) {
+                console.log("✓ User is authenticated");
                 currentUser = user;
                 await handleUserLogin(user);
             } else {
+                console.log("✗ No user authenticated");
                 showLoginScreen();
             }
+            console.log("=========================");
         });
 
         // ============================================
-        // HANDLE USER LOGIN
+        // HANDLE USER LOGIN - FIXED VERSION
         // ============================================
         async function handleUserLogin(user) {
+            console.log("→ handleUserLogin called for:", user.email);
+            
             try {
                 // Check if user exists in database
+                console.log("  → Checking if user exists in database...");
                 const userDoc = await db.collection('users').doc(user.uid).get();
+                console.log("  → User doc exists:", userDoc.exists);
                 
                 if (!userDoc.exists) {
+                    console.log("  → User not found, showing registration form");
                     // New user - show registration
                     showRegistrationForm(user);
                 } else {
+                    console.log("  → User found, loading app");
                     // Existing user - load app
                     const userData = userDoc.data();
+                    console.log("  → User data:", userData);
+                    
                     isAdmin = userData.isAdmin || user.email === ADMIN_EMAIL;
+                    console.log("  → isAdmin:", isAdmin);
+                    
                     loadApp(user, userData);
                 }
             } catch (error) {
-                console.error("Error handling user login:", error);
-                alert("Error: " + error.message);
+                console.error("✗ Error in handleUserLogin:", error);
+                console.error("Error details:", error.message);
+                alert("Error loading user data: " + error.message);
                 auth.signOut();
             }
         }
@@ -254,10 +266,9 @@
         // GOOGLE SIGN-IN
         // ============================================
         googleLoginBtn.addEventListener('click', async () => {
-            console.log("Google sign-in clicked");
+            console.log("→ Google sign-in button clicked");
             
             try {
-                // Show loading state
                 googleLoginBtn.disabled = true;
                 googleLoginBtn.innerHTML = '<img src="https://img.icons8.com/color/24/000000/google-logo.png"/> Signing in...';
                 
@@ -265,20 +276,19 @@
                 const result = await auth.signInWithPopup(provider);
                 
                 console.log("✓ Google sign-in successful:", result.user.email);
+                console.log("  → User UID:", result.user.uid);
                 
             } catch (error) {
                 console.error("✗ Google sign-in error:", error);
                 
-                // Handle specific errors
                 if (error.code === 'auth/popup-blocked') {
                     alert("Popup blocked! Please allow popups for this site.");
                 } else if (error.code === 'auth/cancelled-popup-request') {
-                    // User cancelled, do nothing
+                    console.log("User cancelled sign-in");
                 } else {
                     alert("Sign-in failed: " + error.message);
                 }
                 
-                // Reset button
                 googleLoginBtn.disabled = false;
                 googleLoginBtn.innerHTML = '<img src="https://img.icons8.com/color/24/000000/google-logo.png"/> Sign in with Google';
             }
@@ -291,22 +301,18 @@
             const email = adminEmail.value.trim();
             const otp = adminOTP.value.trim();
             
-            console.log("Admin login attempt:", email);
+            console.log("→ Admin login attempt:", email);
             
-            // Validation
             if (!email || !otp) {
                 alert("Please fill in all fields");
                 return;
             }
             
-            // Check credentials
             if (email === ADMIN_EMAIL && otp === ADMIN_OTP) {
                 try {
-                    // Show loading state
                     adminLoginBtn.disabled = true;
                     adminLoginBtn.textContent = "Logging in...";
                     
-                    // Create admin user in database if not exists
                     const adminUser = {
                         email: email,
                         name: "Administrator",
@@ -314,18 +320,11 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     
-                    // Sign in anonymously first
                     const anonUser = await auth.signInAnonymously();
-                    
-                    // Store admin info in database
                     await db.collection('users').doc(anonUser.user.uid).set(adminUser);
-                    
-                    // Mark as admin
                     isAdmin = true;
                     
                     console.log("✓ Admin login successful");
-                    
-                    // Load admin app
                     loadApp(anonUser.user, adminUser);
                     
                 } catch (error) {
@@ -340,10 +339,17 @@
         });
 
         // ============================================
-        // REGISTRATION FORM
+        // REGISTRATION FORM - FIXED VERSION
         // ============================================
         function showRegistrationForm(user) {
-            // Create modal
+            console.log("→ showRegistrationForm called");
+            
+            // Remove any existing modals first
+            const existingModal = document.getElementById('registrationModal');
+            if (existingModal) {
+                document.body.removeChild(existingModal);
+            }
+            
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.id = 'registrationModal';
@@ -358,15 +364,19 @@
             `;
             
             document.body.appendChild(modal);
+            console.log("✓ Registration modal created and appended");
             
             // Close button
-            modal.querySelector('.close').onclick = () => {
+            const closeBtn = modal.querySelector('.close');
+            closeBtn.onclick = () => {
+                console.log("→ Registration modal closed");
                 document.body.removeChild(modal);
                 auth.signOut();
             };
             
             // Register button
-            modal.querySelector('#registerBtn').onclick = async () => {
+            const registerBtn = modal.querySelector('#registerBtn');
+            registerBtn.onclick = async () => {
                 const name = document.getElementById('userNameInput').value.trim();
                 
                 if (!name) {
@@ -375,7 +385,8 @@
                 }
                 
                 try {
-                    // Save user to database
+                    console.log("→ Registering user:", name);
+                    
                     await db.collection('users').doc(user.uid).set({
                         name: name,
                         email: user.email,
@@ -383,11 +394,16 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
-                    console.log("✓ User registered:", name);
+                    console.log("✓ User registered successfully");
                     
-                    // Remove modal and load app
                     document.body.removeChild(modal);
-                    loadApp(user, { name, email: user.email, isAdmin: user.email === ADMIN_EMAIL });
+                    console.log("→ Loading app for registered user");
+                    
+                    loadApp(user, { 
+                        name, 
+                        email: user.email, 
+                        isAdmin: user.email === ADMIN_EMAIL 
+                    });
                     
                 } catch (error) {
                     console.error("✗ Registration error:", error);
@@ -395,42 +411,60 @@
                 }
             };
             
-            // Allow Enter key to submit
+            // Enter key support
             document.getElementById('userNameInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
-                    modal.querySelector('#registerBtn').click();
+                    registerBtn.click();
                 }
             });
         }
 
         // ============================================
-        // LOAD APP
+        // LOAD APP - FIXED VERSION
         // ============================================
         function loadApp(user, userData) {
-            console.log("✓ Loading app for:", userData.name || user.email);
+            console.log("→ loadApp called");
+            console.log("  → User:", user.email);
+            console.log("  → User data:", userData);
+            console.log("  → isAdmin:", isAdmin);
             
-            // Set user display name
-            userName.textContent = userData.name || user.email;
-            
-            // Show admin dashboard button if admin
-            if (userData.isAdmin || user.email === ADMIN_EMAIL) {
-                adminDashboardBtn.style.display = 'block';
-                isAdmin = true;
+            try {
+                // Set user display name
+                userName.textContent = userData.name || user.email;
+                console.log("✓ User name set to:", userName.textContent);
+                
+                // Show admin dashboard button if admin
+                if (userData.isAdmin || user.email === ADMIN_EMAIL) {
+                    adminDashboardBtn.style.display = 'block';
+                    isAdmin = true;
+                    console.log("✓ Admin dashboard button shown");
+                }
+                
+                // Hide login screen, show app
+                console.log("  → Hiding login screen...");
+                loginScreen.style.display = 'none';
+                
+                console.log("  → Showing app container...");
+                appContainer.style.display = 'block';
+                
+                console.log("✓ App loaded successfully!");
+                
+                // Initialize attendance module
+                console.log("→ Initializing attendance module...");
+                initializeAttendance();
+                
+            } catch (error) {
+                console.error("✗ Error in loadApp:", error);
+                console.error("Error stack:", error.stack);
+                alert("Error loading app: " + error.message);
             }
-            
-            // Hide login screen, show app
-            loginScreen.style.display = 'none';
-            appContainer.style.display = 'block';
-            
-            // Initialize attendance module
-            initializeAttendance();
         }
 
         // ============================================
         // SHOW LOGIN SCREEN
         // ============================================
         function showLoginScreen() {
-            console.log("Showing login screen");
+            console.log("→ showLoginScreen called");
             loginScreen.style.display = 'flex';
             appContainer.style.display = 'none';
             currentUser = null;
@@ -444,7 +478,6 @@
             try {
                 await auth.signOut();
                 console.log("✓ User signed out");
-                showLoginScreen();
             } catch (error) {
                 console.error("Logout error:", error);
                 alert("Logout failed: " + error.message);
@@ -469,20 +502,19 @@
         // ============================================
         // TAB SWITCHING
         // ============================================
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Remove active class from all
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-                
-                // Add active to clicked
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-                
-                // Load admin dashboard if clicked
-                if (btn.dataset.tab === 'adminDashboard') {
-                    loadAdminDashboard();
-                }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                    
+                    if (btn.dataset.tab === 'adminDashboard') {
+                        loadAdminDashboard();
+                    }
+                });
             });
         });
 
@@ -490,14 +522,12 @@
         // ATTENDANCE MODULE
         // ============================================
         function initializeAttendance() {
-            console.log("✓ Initializing attendance module");
+            console.log("→ initializeAttendance called");
             
-            // Constants
             const OFFICE_LAT = 1.3500;
             const OFFICE_LNG = 103.8991;
-            const RADIUS = 250; // meters
+            const RADIUS = 250;
 
-            // DOM Elements
             const presentBtn = document.getElementById('presentBtn');
             const rsoBtn = document.getElementById('rsoBtn');
             const rsiBtn = document.getElementById('rsiBtn');
@@ -589,6 +619,7 @@
                     rsoModal.style.display = 'none';
                 });
             }
+            
             if (submitRsiBtn) {
                 submitRsiBtn.addEventListener('click', () => {
                     const symptom = rsiSymptom.value.trim();
@@ -602,6 +633,7 @@
                     rsiModal.style.display = 'none';
                 });
             }
+            
             if (submitLateBtn) {
                 submitLateBtn.addEventListener('click', () => {
                     const reason = lateReason.value.trim();
@@ -616,6 +648,7 @@
                     lateModal.style.display = 'none';
                 });
             }
+            
             if (submitLeaveBtn) {
                 submitLeaveBtn.addEventListener('click', () => {
                     const type = leaveType.value;
@@ -623,6 +656,8 @@
                     leaveModal.style.display = 'none';
                 });
             }
+            
+            console.log("✓ Attendance module initialized");
         }
 
         // ============================================
@@ -683,10 +718,10 @@
         }
 
         // ============================================
-        // CALCULATE DISTANCE (Haversine formula)
+        // CALCULATE DISTANCE
         // ============================================
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth's radius in meters
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -701,7 +736,7 @@
         }
 
         // ============================================
-        // SUBMIT ATTENDANCE TO FIREBASE
+        // SUBMIT ATTENDANCE
         // ============================================
         function submitAttendance(type, data) {
             if (!currentUser) {
@@ -736,14 +771,13 @@
         function loadAdminDashboard() {
             if (!isAdmin) return;
             
-            console.log("✓ Loading admin dashboard");
+            console.log("→ Loading admin dashboard");
             
             const totalUsers = document.getElementById('totalUsers');
             const todaysAttendance = document.getElementById('todaysAttendance');
             const pendingMcs = document.getElementById('pendingMcs');
             const adminTableContainer = document.getElementById('adminTableContainer');
             
-            // Get total users
             db.collection('users').get()
                 .then((snapshot) => {
                     totalUsers.textContent = snapshot.size;
@@ -752,7 +786,6 @@
                     console.error('Error getting users:', error);
                 });
             
-            // Get today's attendance
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
@@ -766,10 +799,8 @@
                     console.error('Error getting attendance:', error);
                 });
             
-            // Get pending MCs (placeholder)
             pendingMcs.textContent = '0';
             
-            // Load attendance table
             db.collection('attendance')
                 .orderBy('timestamp', 'desc')
                 .limit(50)
