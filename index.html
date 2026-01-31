@@ -1,44 +1,873 @@
-<!-- Login Screen -->
-<div id="loginScreen" class="login-container">
-    <div class="login-box">
-        <h2>Attendance Management System</h2>
-        
-        <!-- User Login Section -->
-        <div id="userLogin">
-            <button id="googleLoginBtn" class="google-btn">
-                <img src="https://img.icons8.com/color/24/000000/google-logo.png"/>
-                Sign in with Google
-            </button>
-        </div>
-        
-        <!-- Admin Login Section (Hidden by default) -->
-        <div id="adminLogin" style="display:none;">
-            <h3>🔐 Admin Login</h3>
-            <input type="email" id="adminEmail" placeholder="Admin Email" class="input-field">
-            <input type="password" id="adminOTP" placeholder="One-Time Password" class="input-field">
-            <button id="adminLoginBtn" class="btn">Login</button>
-            <button id="backToUserLogin" class="btn-outline">← Back to User Login</button>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <button id="switchToAdmin" class="btn-outline">🔐 Admin Login</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- ⚠️ LOAD FIREBASE SDK FIRST - BEFORE ANYTHING ELSE ⚠️ -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- ⚠️ LOAD FIREBASE CONFIG IMMEDIATELY AFTER SDK ⚠️ -->
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION - REPLACE WITH YOURS
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC...", // ⚠️ REPLACE WITH YOUR API KEY
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("✓ Firebase SDK initialized successfully");
+        } catch (error) {
+            console.error("✗ Firebase initialization error:", error);
+        }
+
+        // Initialize services
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Admin credentials
+        const ADMIN_EMAIL = "admin@example.com"; // ⚠️ CHANGE THIS
+        const ADMIN_OTP = "123456"; // ⚠️ CHANGE THIS
+
+        // Global state
+        let currentUser = null;
+        let isAdmin = false;
+    </script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h2>Attendance Management System</h2>
+            
+            <!-- User Login Section -->
+            <div id="userLogin">
+                <button id="googleLoginBtn" class="google-btn">
+                    <img src="https://img.icons8.com/color/24/000000/google-logo.png"/>
+                    Sign in with Google
+                </button>
+            </div>
+            
+            <!-- Admin Login Section (Hidden by default) -->
+            <div id="adminLogin" style="display:none;">
+                <h3>🔐 Admin Login</h3>
+                <input type="email" id="adminEmail" placeholder="Admin Email" class="input-field">
+                <input type="password" id="adminOTP" placeholder="One-Time Password" class="input-field">
+                <button id="adminLoginBtn" class="btn">Login</button>
+                <button id="backToUserLogin" class="btn-outline">← Back to User Login</button>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button id="switchToAdmin" class="btn-outline">🔐 Admin Login</button>
+            </div>
         </div>
     </div>
-</div>
-<script>
-// Debug script
-window.addEventListener('load', () => {
-    console.log("=== APP DEBUG INFO ===");
-    console.log("Firebase:", typeof firebase !== 'undefined' ? "✓ Loaded" : "✗ NOT LOADED");
-    console.log("Auth:", typeof auth !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
-    console.log("Firestore:", typeof db !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
-    console.log("Current User:", currentUser ? currentUser.email : "None");
-    console.log("Is Admin:", isAdmin);
-    console.log("======================");
-    
-    // Test Firebase connection
-    if (typeof firebase !== 'undefined') {
-        console.log("✓ Firebase SDK version:", firebase.SDK_VERSION);
-    }
-});
-</script>
+
+    <!-- Main App (Hidden initially) -->
+    <div id="appContainer" style="display:none;">
+        <!-- Navigation Tabs -->
+        <nav class="navbar">
+            <div class="logo">Attendance System</div>
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="attendance">Attendance</button>
+                <button class="tab-btn" data-tab="mc">MC Submission</button>
+                <button class="tab-btn" data-tab="parade">Parade State</button>
+                <button class="tab-btn" data-tab="missing">Missing Attendance</button>
+                <button id="adminDashboardBtn" class="tab-btn" style="display:none;">Admin Dashboard</button>
+            </div>
+            <div class="user-info">
+                <span id="userName"></span>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Tab Contents -->
+        <div class="tab-content">
+            <!-- Attendance Tab -->
+            <div id="attendance" class="tab-pane active">
+                <h2>Attendance</h2>
+                <div class="button-grid">
+                    <button id="presentBtn" class="attendance-btn present">Present</button>
+                    <button id="rsoBtn" class="attendance-btn sick">Report Sick Outside (RSO)</button>
+                    <button id="rsiBtn" class="attendance-btn sick">Report Sick Inside (RSI)</button>
+                    <button id="lateBtn" class="attendance-btn late">Late</button>
+                    <button id="leaveBtn" class="attendance-btn leave">Leave</button>
+                </div>
+
+                <!-- Modal Forms -->
+                <div id="rsoModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>Report Sick Outside (RSO)</h3>
+                        <input type="text" id="rsoSymptom" placeholder="Symptom" class="input-field">
+                        <input type="text" id="rsoLocation" placeholder="Location" class="input-field">
+                        <button id="submitRsoBtn" class="btn">Submit</button>
+                    </div>
+                </div>
+
+                <div id="rsiModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>Report Sick Inside (RSI)</h3>
+                        <input type="text" id="rsiSymptom" placeholder="Symptom" class="input-field">
+                        <button id="submitRsiBtn" class="btn">Submit</button>
+                    </div>
+                </div>
+
+                <div id="lateModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>Late Report</h3>
+                        <input type="text" id="lateReason" placeholder="Reason" class="input-field">
+                        <input type="time" id="lateTime" placeholder="EST Time" class="input-field">
+                        <button id="submitLateBtn" class="btn">Submit</button>
+                    </div>
+                </div>
+
+                <div id="leaveModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>Leave Application</h3>
+                        <select id="leaveType" class="input-field">
+                            <option value="FullDay">Full Day</option>
+                            <option value="HalfDayAM">Half Day (AM)</option>
+                            <option value="HalfDayPM">Half Day (PM)</option>
+                        </select>
+                        <button id="submitLeaveBtn" class="btn">Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MC Submission Tab -->
+            <div id="mc" class="tab-pane">
+                <h2>MC Submission</h2>
+                <p>MC submission functionality coming soon...</p>
+            </div>
+
+            <!-- Parade State Tab -->
+            <div id="parade" class="tab-pane">
+                <h2>Parade State</h2>
+                <p>Parade state functionality coming soon...</p>
+            </div>
+
+            <!-- Missing Attendance Tab -->
+            <div id="missing" class="tab-pane">
+                <h2>Missing Attendance</h2>
+                <p>Missing attendance functionality coming soon...</p>
+            </div>
+
+            <!-- Admin Dashboard -->
+            <div id="adminDashboard" class="tab-pane">
+                <h2>Admin Dashboard</h2>
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <h3>Total Users</h3>
+                        <p id="totalUsers">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Today's Attendance</h3>
+                        <p id="todaysAttendance">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pending MCs</h3>
+                        <p id="pendingMcs">0</p>
+                    </div>
+                </div>
+                <div id="adminTableContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚠️ LOAD ALL OTHER SCRIPTS AT THE END ⚠️ -->
+    <script>
+        // ============================================
+        // AUTHENTICATION MODULE
+        // ============================================
+        console.log("✓ Starting app initialization...");
+
+        // DOM Elements
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        const userName = document.getElementById('userName');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const switchToAdmin = document.getElementById('switchToAdmin');
+        const adminLogin = document.getElementById('adminLogin');
+        const backToUserLogin = document.getElementById('backToUserLogin');
+        const adminEmail = document.getElementById('adminEmail');
+        const adminOTP = document.getElementById('adminOTP');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+
+        // ============================================
+        // FIREBASE AUTH STATE LISTENER
+        // ============================================
+        auth.onAuthStateChanged(async (user) => {
+            console.log("Auth state changed:", user ? user.email : "No user");
+            
+            if (user) {
+                currentUser = user;
+                await handleUserLogin(user);
+            } else {
+                showLoginScreen();
+            }
+        });
+
+        // ============================================
+        // HANDLE USER LOGIN
+        // ============================================
+        async function handleUserLogin(user) {
+            try {
+                // Check if user exists in database
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+                if (!userDoc.exists) {
+                    // New user - show registration
+                    showRegistrationForm(user);
+                } else {
+                    // Existing user - load app
+                    const userData = userDoc.data();
+                    isAdmin = userData.isAdmin || user.email === ADMIN_EMAIL;
+                    loadApp(user, userData);
+                }
+            } catch (error) {
+                console.error("Error handling user login:", error);
+                alert("Error: " + error.message);
+                auth.signOut();
+            }
+        }
+
+        // ============================================
+        // GOOGLE SIGN-IN
+        // ============================================
+        googleLoginBtn.addEventListener('click', async () => {
+            console.log("Google sign-in clicked");
+            
+            try {
+                // Show loading state
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.innerHTML = '<img src="https://img.icons8.com/color/24/000000/google-logo.png"/> Signing in...';
+                
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                
+                console.log("✓ Google sign-in successful:", result.user.email);
+                
+            } catch (error) {
+                console.error("✗ Google sign-in error:", error);
+                
+                // Handle specific errors
+                if (error.code === 'auth/popup-blocked') {
+                    alert("Popup blocked! Please allow popups for this site.");
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    // User cancelled, do nothing
+                } else {
+                    alert("Sign-in failed: " + error.message);
+                }
+                
+                // Reset button
+                googleLoginBtn.disabled = false;
+                googleLoginBtn.innerHTML = '<img src="https://img.icons8.com/color/24/000000/google-logo.png"/> Sign in with Google';
+            }
+        });
+
+        // ============================================
+        // ADMIN LOGIN
+        // ============================================
+        adminLoginBtn.addEventListener('click', async () => {
+            const email = adminEmail.value.trim();
+            const otp = adminOTP.value.trim();
+            
+            console.log("Admin login attempt:", email);
+            
+            // Validation
+            if (!email || !otp) {
+                alert("Please fill in all fields");
+                return;
+            }
+            
+            // Check credentials
+            if (email === ADMIN_EMAIL && otp === ADMIN_OTP) {
+                try {
+                    // Show loading state
+                    adminLoginBtn.disabled = true;
+                    adminLoginBtn.textContent = "Logging in...";
+                    
+                    // Create admin user in database if not exists
+                    const adminUser = {
+                        email: email,
+                        name: "Administrator",
+                        isAdmin: true,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    // Sign in anonymously first
+                    const anonUser = await auth.signInAnonymously();
+                    
+                    // Store admin info in database
+                    await db.collection('users').doc(anonUser.user.uid).set(adminUser);
+                    
+                    // Mark as admin
+                    isAdmin = true;
+                    
+                    console.log("✓ Admin login successful");
+                    
+                    // Load admin app
+                    loadApp(anonUser.user, adminUser);
+                    
+                } catch (error) {
+                    console.error("✗ Admin login error:", error);
+                    alert("Login failed: " + error.message);
+                    adminLoginBtn.disabled = false;
+                    adminLoginBtn.textContent = "Login";
+                }
+            } else {
+                alert("Invalid admin credentials");
+            }
+        });
+
+        // ============================================
+        // REGISTRATION FORM
+        // ============================================
+        function showRegistrationForm(user) {
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'registrationModal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>📝 Welcome! Please Register</h3>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <input type="text" id="userNameInput" placeholder="Enter your full name" class="input-field" autofocus>
+                    <button id="registerBtn" class="btn">Register & Continue</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Close button
+            modal.querySelector('.close').onclick = () => {
+                document.body.removeChild(modal);
+                auth.signOut();
+            };
+            
+            // Register button
+            modal.querySelector('#registerBtn').onclick = async () => {
+                const name = document.getElementById('userNameInput').value.trim();
+                
+                if (!name) {
+                    alert("Please enter your name");
+                    return;
+                }
+                
+                try {
+                    // Save user to database
+                    await db.collection('users').doc(user.uid).set({
+                        name: name,
+                        email: user.email,
+                        isAdmin: user.email === ADMIN_EMAIL,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    console.log("✓ User registered:", name);
+                    
+                    // Remove modal and load app
+                    document.body.removeChild(modal);
+                    loadApp(user, { name, email: user.email, isAdmin: user.email === ADMIN_EMAIL });
+                    
+                } catch (error) {
+                    console.error("✗ Registration error:", error);
+                    alert("Registration failed: " + error.message);
+                }
+            };
+            
+            // Allow Enter key to submit
+            document.getElementById('userNameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    modal.querySelector('#registerBtn').click();
+                }
+            });
+        }
+
+        // ============================================
+        // LOAD APP
+        // ============================================
+        function loadApp(user, userData) {
+            console.log("✓ Loading app for:", userData.name || user.email);
+            
+            // Set user display name
+            userName.textContent = userData.name || user.email;
+            
+            // Show admin dashboard button if admin
+            if (userData.isAdmin || user.email === ADMIN_EMAIL) {
+                adminDashboardBtn.style.display = 'block';
+                isAdmin = true;
+            }
+            
+            // Hide login screen, show app
+            loginScreen.style.display = 'none';
+            appContainer.style.display = 'block';
+            
+            // Initialize attendance module
+            initializeAttendance();
+        }
+
+        // ============================================
+        // SHOW LOGIN SCREEN
+        // ============================================
+        function showLoginScreen() {
+            console.log("Showing login screen");
+            loginScreen.style.display = 'flex';
+            appContainer.style.display = 'none';
+            currentUser = null;
+            isAdmin = false;
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                console.log("✓ User signed out");
+                showLoginScreen();
+            } catch (error) {
+                console.error("Logout error:", error);
+                alert("Logout failed: " + error.message);
+            }
+        });
+
+        // ============================================
+        // SWITCH TO ADMIN LOGIN
+        // ============================================
+        switchToAdmin.addEventListener('click', () => {
+            adminLogin.style.display = 'block';
+            document.getElementById('userLogin').style.display = 'none';
+            switchToAdmin.style.display = 'none';
+        });
+
+        backToUserLogin.addEventListener('click', () => {
+            adminLogin.style.display = 'none';
+            document.getElementById('userLogin').style.display = 'block';
+            switchToAdmin.style.display = 'block';
+        });
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                
+                // Add active to clicked
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                
+                // Load admin dashboard if clicked
+                if (btn.dataset.tab === 'adminDashboard') {
+                    loadAdminDashboard();
+                }
+            });
+        });
+
+        // ============================================
+        // ATTENDANCE MODULE
+        // ============================================
+        function initializeAttendance() {
+            console.log("✓ Initializing attendance module");
+            
+            // Constants
+            const OFFICE_LAT = 1.3500;
+            const OFFICE_LNG = 103.8991;
+            const RADIUS = 250; // meters
+
+            // DOM Elements
+            const presentBtn = document.getElementById('presentBtn');
+            const rsoBtn = document.getElementById('rsoBtn');
+            const rsiBtn = document.getElementById('rsiBtn');
+            const lateBtn = document.getElementById('lateBtn');
+            const leaveBtn = document.getElementById('leaveBtn');
+
+            const rsoModal = document.getElementById('rsoModal');
+            const rsiModal = document.getElementById('rsiModal');
+            const lateModal = document.getElementById('lateModal');
+            const leaveModal = document.getElementById('leaveModal');
+
+            const rsoSymptom = document.getElementById('rsoSymptom');
+            const rsoLocation = document.getElementById('rsoLocation');
+            const rsiSymptom = document.getElementById('rsiSymptom');
+            const lateReason = document.getElementById('lateReason');
+            const lateTime = document.getElementById('lateTime');
+            const leaveType = document.getElementById('leaveType');
+
+            const submitRsoBtn = document.getElementById('submitRsoBtn');
+            const submitRsiBtn = document.getElementById('submitRsiBtn');
+            const submitLateBtn = document.getElementById('submitLateBtn');
+            const submitLeaveBtn = document.getElementById('submitLeaveBtn');
+            
+            // Modal close buttons
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.onclick = function() {
+                    this.parentElement.parentElement.style.display = 'none';
+                }
+            });
+            
+            // Outside click to close modals
+            window.onclick = function(event) {
+                if (event.target.className === 'modal') {
+                    event.target.style.display = 'none';
+                }
+            };
+            
+            // Present Button
+            if (presentBtn) {
+                presentBtn.addEventListener('click', () => checkLocationAndMarkPresent(OFFICE_LAT, OFFICE_LNG, RADIUS));
+            }
+            
+            // RSO Button
+            if (rsoBtn) {
+                rsoBtn.addEventListener('click', () => {
+                    rsoModal.style.display = 'block';
+                    rsoSymptom.value = '';
+                    rsoLocation.value = '';
+                });
+            }
+            
+            // RSI Button
+            if (rsiBtn) {
+                rsiBtn.addEventListener('click', () => {
+                    rsiModal.style.display = 'block';
+                    rsiSymptom.value = '';
+                });
+            }
+            
+            // Late Button
+            if (lateBtn) {
+                lateBtn.addEventListener('click', () => {
+                    lateModal.style.display = 'block';
+                    lateReason.value = '';
+                    lateTime.value = '';
+                });
+            }
+            
+            // Leave Button
+            if (leaveBtn) {
+                leaveBtn.addEventListener('click', () => {
+                    leaveModal.style.display = 'block';
+                    leaveType.value = 'FullDay';
+                });
+            }
+            
+            // Submit buttons
+            if (submitRsoBtn) {
+                submitRsoBtn.addEventListener('click', () => {
+                    const symptom = rsoSymptom.value.trim();
+                    const location = rsoLocation.value.trim();
+                    
+                    if (!symptom || !location) {
+                        alert('Please fill in all fields');
+                        return;
+                    }
+                    
+                    submitAttendance('RSO', { symptom, location });
+                    rsoModal.style.display = 'none';
+                });
+            }
+            if (submitRsiBtn) {
+                submitRsiBtn.addEventListener('click', () => {
+                    const symptom = rsiSymptom.value.trim();
+                    
+                    if (!symptom) {
+                        alert('Please enter symptom');
+                        return;
+                    }
+                    
+                    submitAttendance('RSI', { symptom });
+                    rsiModal.style.display = 'none';
+                });
+            }
+            if (submitLateBtn) {
+                submitLateBtn.addEventListener('click', () => {
+                    const reason = lateReason.value.trim();
+                    const time = lateTime.value;
+                    
+                    if (!reason || !time) {
+                        alert('Please fill in all fields');
+                        return;
+                    }
+                    
+                    submitAttendance('Late', { reason, time });
+                    lateModal.style.display = 'none';
+                });
+            }
+            if (submitLeaveBtn) {
+                submitLeaveBtn.addEventListener('click', () => {
+                    const type = leaveType.value;
+                    submitAttendance('Leave', { type });
+                    leaveModal.style.display = 'none';
+                });
+            }
+        }
+
+        // ============================================
+        // LOCATION CHECKING
+        // ============================================
+        function checkLocationAndMarkPresent(OFFICE_LAT, OFFICE_LNG, RADIUS) {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+            
+            const presentBtn = document.getElementById('presentBtn');
+            presentBtn.disabled = true;
+            presentBtn.textContent = 'Checking location...';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    const distance = calculateDistance(userLat, userLng, OFFICE_LAT, OFFICE_LNG);
+                    
+                    presentBtn.disabled = false;
+                    presentBtn.textContent = 'Present';
+                    
+                    if (distance <= RADIUS) {
+                        submitAttendance('Present', {});
+                    } else {
+                        alert(`❌ You are ${Math.round(distance)}m away from the office.\nYou must be within ${RADIUS}m to mark present.`);
+                    }
+                },
+                (error) => {
+                    const presentBtn = document.getElementById('presentBtn');
+                    presentBtn.disabled = false;
+                    presentBtn.textContent = 'Present';
+                    
+                    console.error('Geolocation error:', error);
+                    let errorMsg = 'Unable to get your location.\n';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg += 'Please enable location services.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg += 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg += 'Location request timed out.';
+                            break;
+                        default:
+                            errorMsg += 'An unknown error occurred.';
+                    }
+                    
+                    alert(errorMsg);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        // ============================================
+        // CALCULATE DISTANCE (Haversine formula)
+        // ============================================
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+
+        // ============================================
+        // SUBMIT ATTENDANCE TO FIREBASE
+        // ============================================
+        function submitAttendance(type, data) {
+            if (!currentUser) {
+                alert('You must be logged in to submit attendance');
+                return;
+            }
+            
+            const attendanceData = {
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 
+                         (currentUser.email ? currentUser.email.split('@')[0] : 'Unknown'),
+                userEmail: currentUser.email || '',
+                type: type,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                ...data
+            };
+            
+            db.collection('attendance').add(attendanceData)
+                .then(() => {
+                    alert(`✅ ${type} attendance submitted successfully!`);
+                    console.log("✓ Attendance submitted:", type);
+                })
+                .catch((error) => {
+                    console.error('✗ Error submitting attendance:', error);
+                    alert('Failed to submit attendance: ' + error.message);
+                });
+        }
+
+        // ============================================
+        // ADMIN DASHBOARD
+        // ============================================
+        function loadAdminDashboard() {
+            if (!isAdmin) return;
+            
+            console.log("✓ Loading admin dashboard");
+            
+            const totalUsers = document.getElementById('totalUsers');
+            const todaysAttendance = document.getElementById('todaysAttendance');
+            const pendingMcs = document.getElementById('pendingMcs');
+            const adminTableContainer = document.getElementById('adminTableContainer');
+            
+            // Get total users
+            db.collection('users').get()
+                .then((snapshot) => {
+                    totalUsers.textContent = snapshot.size;
+                })
+                .catch((error) => {
+                    console.error('Error getting users:', error);
+                });
+            
+            // Get today's attendance
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            db.collection('attendance')
+                .where('timestamp', '>=', today)
+                .get()
+                .then((snapshot) => {
+                    todaysAttendance.textContent = snapshot.size;
+                })
+                .catch((error) => {
+                    console.error('Error getting attendance:', error);
+                });
+            
+            // Get pending MCs (placeholder)
+            pendingMcs.textContent = '0';
+            
+            // Load attendance table
+            db.collection('attendance')
+                .orderBy('timestamp', 'desc')
+                .limit(50)
+                .get()
+                .then((snapshot) => {
+                    if (snapshot.empty) {
+                        adminTableContainer.innerHTML = '<p>No attendance records found</p>';
+                        return;
+                    }
+                    
+                    let tableHTML = `
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Date</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : 'N/A';
+                        
+                        let details = '';
+                        if (data.symptom) details += `Symptom: ${data.symptom}<br>`;
+                        if (data.location) details += `Location: ${data.location}<br>`;
+                        if (data.reason) details += `Reason: ${data.reason}<br>`;
+                        if (data.time) details += `Time: ${data.time}<br>`;
+                        if (data.type) details += `Leave Type: ${data.type}<br>`;
+                        
+                        tableHTML += `
+                            <tr>
+                                <td>${data.userName || 'N/A'}</td>
+                                <td>${data.type}</td>
+                                <td>${date}</td>
+                                <td>${details || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    adminTableContainer.innerHTML = tableHTML;
+                })
+                .catch((error) => {
+                    console.error('Error loading attendance table:', error);
+                    adminTableContainer.innerHTML = '<p>Error loading data</p>';
+                });
+        }
+
+        // ============================================
+        // ADD ADMIN TABLE STYLES
+        // ============================================
+        const style = document.createElement('style');
+        style.textContent = `
+            .admin-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                background: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            
+            .admin-table th,
+            .admin-table td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            .admin-table th {
+                background-color: #667eea;
+                color: white;
+                font-weight: bold;
+            }
+            
+            .admin-table tr:hover {
+                background-color: #f5f5f5;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ============================================
+        // DEBUG INFO
+        // ============================================
+        console.log("=== APP DEBUG INFO ===");
+        console.log("Firebase:", typeof firebase !== 'undefined' ? "✓ Loaded" : "✗ NOT LOADED");
+        console.log("Auth:", typeof auth !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
+        console.log("Firestore:", typeof db !== 'undefined' ? "✓ Initialized" : "✗ NOT INITIALIZED");
+        console.log("======================");
+    </script>
+</body>
+</html>
