@@ -1,155 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Management System</title>
-    <link rel="stylesheet" href="css/style.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-</head>
-<body>
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-box">
-            <h2>Attendance Management System</h2>
-            <div id="userLogin">
-                <button id="googleLoginBtn" class="google-btn">
-                    <img src="https://img.icons8.com/color/48/000000/google-logo.png"/>
-                    Sign in with Google
-                </button>
-            </div>
-            <div id="adminLogin" style="display:none;">
-                <h3>Admin Login</h3>
-                <input type="email" id="adminEmail" placeholder="Admin Email" class="input-field">
-                <input type="password" id="adminOTP" placeholder="One-Time Password" class="input-field">
-                <button id="adminLoginBtn" class="btn">Login</button>
-                <button id="backToUserLogin" class="btn-outline">Back to User Login</button>
-            </div>
-            <button id="switchToAdmin" class="btn-outline">Admin Login</button>
+<!-- Login Screen -->
+<div id="loginScreen" class="login-container">
+    <div class="login-box">
+        <h2>Attendance Management System</h2>
+        
+        <!-- User Login Section -->
+        <div id="userLogin">
+            <button id="googleLoginBtn" class="google-btn">
+                <img src="https://img.icons8.com/color/24/000000/google-logo.png"/>
+                Sign in with Google
+            </button>
+        </div>
+        
+        <!-- Admin Login Section (Hidden by default) -->
+        <div id="adminLogin" style="display:none;">
+            <h3>🔐 Admin Login</h3>
+            <input type="email" id="adminEmail" placeholder="Admin Email" class="input-field">
+            <input type="password" id="adminOTP" placeholder="One-Time Password" class="input-field">
+            <button id="adminLoginBtn" class="btn">Login</button>
+            <button id="backToUserLogin" class="btn-outline">← Back to User Login</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button id="switchToAdmin" class="btn-outline">🔐 Admin Login</button>
         </div>
     </div>
-
-    <!-- Main App (Hidden initially) -->
-    <div id="appContainer" style="display:none;">
-        <!-- Navigation Tabs -->
-        <nav class="navbar">
-            <div class="logo">Attendance System</div>
-            <div class="nav-tabs">
-                <button class="tab-btn active" data-tab="attendance">Attendance</button>
-                <button class="tab-btn" data-tab="mc">MC Submission</button>
-                <button class="tab-btn" data-tab="parade">Parade State</button>
-                <button class="tab-btn" data-tab="missing">Missing Attendance</button>
-                <button id="adminDashboardBtn" class="tab-btn" style="display:none;">Admin Dashboard</button>
-            </div>
-            <div class="user-info">
-                <span id="userName"></span>
-                <button id="logoutBtn" class="btn-logout">Logout</button>
-            </div>
-        </nav>
-
-        <!-- Tab Contents -->
-        <div class="tab-content">
-            <!-- Attendance Tab -->
-            <div id="attendance" class="tab-pane active">
-                <h2>Attendance</h2>
-                <div class="button-grid">
-                    <button id="presentBtn" class="attendance-btn present">Present</button>
-                    <button id="rsoBtn" class="attendance-btn sick">Report Sick Outside (RSO)</button>
-                    <button id="rsiBtn" class="attendance-btn sick">Report Sick Inside (RSI)</button>
-                    <button id="lateBtn" class="attendance-btn late">Late</button>
-                    <button id="leaveBtn" class="attendance-btn leave">Leave</button>
-                </div>
-
-                <!-- Modal Forms -->
-                <div id="rsoModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3>Report Sick Outside (RSO)</h3>
-                        <input type="text" id="rsoSymptom" placeholder="Symptom" class="input-field">
-                        <input type="text" id="rsoLocation" placeholder="Location" class="input-field">
-                        <button id="submitRsoBtn" class="btn">Submit</button>
-                    </div>
-                </div>
-
-                <div id="rsiModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3>Report Sick Inside (RSI)</h3>
-                        <input type="text" id="rsiSymptom" placeholder="Symptom" class="input-field">
-                        <button id="submitRsiBtn" class="btn">Submit</button>
-                    </div>
-                </div>
-
-                <div id="lateModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3>Late Report</h3>
-                        <input type="text" id="lateReason" placeholder="Reason" class="input-field">
-                        <input type="time" id="lateTime" placeholder="EST Time" class="input-field">
-                        <button id="submitLateBtn" class="btn">Submit</button>
-                    </div>
-                </div>
-
-                <div id="leaveModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3>Leave Application</h3>
-                        <select id="leaveType" class="input-field">
-                            <option value="FullDay">Full Day</option>
-                            <option value="HalfDayAM">Half Day (AM)</option>
-                            <option value="HalfDayPM">Half Day (PM)</option>
-                        </select>
-                        <button id="submitLeaveBtn" class="btn">Submit</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MC Submission Tab -->
-            <div id="mc" class="tab-pane">
-                <h2>MC Submission</h2>
-                <p>MC submission functionality coming soon...</p>
-            </div>
-
-            <!-- Parade State Tab -->
-            <div id="parade" class="tab-pane">
-                <h2>Parade State</h2>
-                <p>Parade state functionality coming soon...</p>
-            </div>
-
-            <!-- Missing Attendance Tab -->
-            <div id="missing" class="tab-pane">
-                <h2>Missing Attendance</h2>
-                <p>Missing attendance functionality coming soon...</p>
-            </div>
-
-            <!-- Admin Dashboard -->
-            <div id="adminDashboard" class="tab-pane">
-                <h2>Admin Dashboard</h2>
-                <div class="admin-stats">
-                    <div class="stat-card">
-                        <h3>Total Users</h3>
-                        <p id="totalUsers">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Today's Attendance</h3>
-                        <p id="todaysAttendance">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Pending MCs</h3>
-                        <p id="pendingMcs">0</p>
-                    </div>
-                </div>
-                <div id="adminTableContainer"></div>
-            </div>
-        </div>
-    </div>
-
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/attendance.js"></script>
-    <script src="js/admin.js"></script>
-</body>
-</html>
+</div>
