@@ -12,6 +12,7 @@ const adminOTP = document.getElementById('adminOTP');
 const adminLoginBtn = document.getElementById('adminLoginBtn');
 const adminDashboardBtn = document.getElementById('adminDashboardBtn');
 
+
 // Current user state
 let currentUser = null;
 let isAdmin = false;
