@@ -1,72 +1,128 @@
-// DOM Elements
-const presentBtn = document.getElementById('presentBtn');
-const rsoBtn = document.getElementById('rsoBtn');
-const rsiBtn = document.getElementById('rsiBtn');
-const lateBtn = document.getElementById('lateBtn');
-const leaveBtn = document.getElementById('leaveBtn');
-
-const rsoModal = document.getElementById('rsoModal');
-const rsiModal = document.getElementById('rsiModal');
-const lateModal = document.getElementById('lateModal');
-const leaveModal = document.getElementById('leaveModal');
-
-const rsoSymptom = document.getElementById('rsoSymptom');
-const rsoLocation = document.getElementById('rsoLocation');
-const rsiSymptom = document.getElementById('rsiSymptom');
-const lateReason = document.getElementById('lateReason');
-const lateTime = document.getElementById('lateTime');
-const leaveType = document.getElementById('leaveType');
-
-const submitRsoBtn = document.getElementById('submitRsoBtn');
-const submitRsiBtn = document.getElementById('submitRsiBtn');
-const submitLateBtn = document.getElementById('submitLateBtn');
-const submitLeaveBtn = document.getElementById('submitLeaveBtn');
+// ============================================
+// ATTENDANCE MODULE
+// ============================================
 
 // Constants
 const OFFICE_LAT = 1.3500;
 const OFFICE_LNG = 103.8991;
 const RADIUS = 250; // meters
 
-// Modal close buttons
-document.querySelectorAll('.close').forEach(closeBtn => {
-    closeBtn.onclick = function() {
-        this.parentElement.parentElement.style.display = 'none';
+// DOM Elements
+let presentBtn, rsoBtn, rsiBtn, lateBtn, leaveBtn;
+let rsoModal, rsiModal, lateModal, leaveModal;
+let rsoSymptom, rsoLocation, rsiSymptom, lateReason, lateTime, leaveType;
+let submitRsoBtn, submitRsiBtn, submitLateBtn, submitLeaveBtn;
+
+// ============================================
+// INITIALIZE ATTENDANCE MODULE
+// ============================================
+function initializeAttendance() {
+    console.log("✓ Initializing attendance module");
+    
+    // Get DOM elements
+    presentBtn = document.getElementById('presentBtn');
+    rsoBtn = document.getElementById('rsoBtn');
+    rsiBtn = document.getElementById('rsiBtn');
+    lateBtn = document.getElementById('lateBtn');
+    leaveBtn = document.getElementById('leaveBtn');
+
+    rsoModal = document.getElementById('rsoModal');
+    rsiModal = document.getElementById('rsiModal');
+    lateModal = document.getElementById('lateModal');
+    leaveModal = document.getElementById('leaveModal');
+
+    rsoSymptom = document.getElementById('rsoSymptom');
+    rsoLocation = document.getElementById('rsoLocation');
+    rsiSymptom = document.getElementById('rsiSymptom');
+    lateReason = document.getElementById('lateReason');
+    lateTime = document.getElementById('lateTime');
+    leaveType = document.getElementById('leaveType');
+
+    submitRsoBtn = document.getElementById('submitRsoBtn');
+    submitRsiBtn = document.getElementById('submitRsiBtn');
+    submitLateBtn = document.getElementById('submitLateBtn');
+    submitLeaveBtn = document.getElementById('submitLeaveBtn');
+    
+    // Setup event listeners
+    setupEventListeners();
+}
+
+// ============================================
+// SETUP EVENT LISTENERS
+// ============================================
+function setupEventListeners() {
+    // Modal close buttons
+    document.querySelectorAll('.close').forEach(closeBtn => {
+        closeBtn.onclick = function() {
+            this.parentElement.parentElement.style.display = 'none';
+        }
+    });
+    
+    // Outside click to close modals
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = 'none';
+        }
+    };
+    
+    // Present Button
+    if (presentBtn) {
+        presentBtn.addEventListener('click', checkLocationAndMarkPresent);
     }
-});
+    
+    // RSO Button
+    if (rsoBtn) {
+        rsoBtn.addEventListener('click', () => {
+            rsoModal.style.display = 'block';
+            rsoSymptom.value = '';
+            rsoLocation.value = '';
+        });
+    }
+    
+    // RSI Button
+    if (rsiBtn) {
+        rsiBtn.addEventListener('click', () => {
+            rsiModal.style.display = 'block';
+            rsiSymptom.value = '';
+        });
+    }
+    
+    // Late Button
+    if (lateBtn) {
+        lateBtn.addEventListener('click', () => {
+            lateModal.style.display = 'block';
+            lateReason.value = '';
+            lateTime.value = '';
+        });
+    }
+    
+    // Leave Button
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', () => {
+            leaveModal.style.display = 'block';
+            leaveType.value = 'FullDay';
+        });
+    }
+    
+    // Submit buttons
+    if (submitRsoBtn) {
+        submitRsoBtn.addEventListener('click', submitRSO);
+    }
+    if (submitRsiBtn) {
+        submitRsiBtn.addEventListener('click', submitRSI);
+    }
+    if (submitLateBtn) {
+        submitLateBtn.addEventListener('click', submitLate);
+    }
+    if (submitLeaveBtn) {
+        submitLeaveBtn.addEventListener('click', submitLeave);
+    }
+}
 
-// Present Button
-presentBtn.addEventListener('click', () => {
-    checkLocationAndMarkPresent();
-});
-
-// RSO Button
-rsoBtn.addEventListener('click', () => {
-    rsoModal.style.display = 'block';
-    rsoSymptom.value = '';
-    rsoLocation.value = '';
-});
-
-// RSI Button
-rsiBtn.addEventListener('click', () => {
-    rsiModal.style.display = 'block';
-    rsiSymptom.value = '';
-});
-
-// Late Button
-lateBtn.addEventListener('click', () => {
-    lateModal.style.display = 'block';
-    lateReason.value = '';
-    lateTime.value = '';
-});
-
-// Leave Button
-leaveBtn.addEventListener('click', () => {
-    leaveModal.style.display = 'block';
-    leaveType.value = 'FullDay';
-});
-
-// Submit RSO
-submitRsoBtn.addEventListener('click', () => {
+// ============================================
+// ATTENDANCE SUBMISSION FUNCTIONS
+// ============================================
+function submitRSO() {
     const symptom = rsoSymptom.value.trim();
     const location = rsoLocation.value.trim();
     
@@ -77,10 +133,9 @@ submitRsoBtn.addEventListener('click', () => {
     
     submitAttendance('RSO', { symptom, location });
     rsoModal.style.display = 'none';
-});
+}
 
-// Submit RSI
-submitRsiBtn.addEventListener('click', () => {
+function submitRSI() {
     const symptom = rsiSymptom.value.trim();
     
     if (!symptom) {
@@ -90,10 +145,9 @@ submitRsiBtn.addEventListener('click', () => {
     
     submitAttendance('RSI', { symptom });
     rsiModal.style.display = 'none';
-});
+}
 
-// Submit Late
-submitLateBtn.addEventListener('click', () => {
+function submitLate() {
     const reason = lateReason.value.trim();
     const time = lateTime.value;
     
@@ -104,21 +158,25 @@ submitLateBtn.addEventListener('click', () => {
     
     submitAttendance('Late', { reason, time });
     lateModal.style.display = 'none';
-});
+}
 
-// Submit Leave
-submitLeaveBtn.addEventListener('click', () => {
+function submitLeave() {
     const type = leaveType.value;
     submitAttendance('Leave', { type });
     leaveModal.style.display = 'none';
-});
+}
 
-// Check location and mark present
+// ============================================
+// LOCATION CHECKING
+// ============================================
 function checkLocationAndMarkPresent() {
     if (!navigator.geolocation) {
         alert('Geolocation is not supported by your browser');
         return;
     }
+    
+    presentBtn.disabled = true;
+    presentBtn.textContent = 'Checking location...';
     
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -127,21 +185,45 @@ function checkLocationAndMarkPresent() {
             
             const distance = calculateDistance(userLat, userLng, OFFICE_LAT, OFFICE_LNG);
             
+            presentBtn.disabled = false;
+            presentBtn.textContent = 'Present';
+            
             if (distance <= RADIUS) {
                 submitAttendance('Present', {});
             } else {
-                alert(`You are ${Math.round(distance)}m away from the office. You must be within ${RADIUS}m to mark present.`);
+                alert(`❌ You are ${Math.round(distance)}m away from the office.\nYou must be within ${RADIUS}m to mark present.`);
             }
         },
         (error) => {
+            presentBtn.disabled = false;
+            presentBtn.textContent = 'Present';
+            
             console.error('Geolocation error:', error);
-            alert('Unable to get your location. Please enable location services.');
+            let errorMsg = 'Unable to get your location.\n';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg += 'Please enable location services.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg += 'Location information is unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg += 'Location request timed out.';
+                    break;
+                default:
+                    errorMsg += 'An unknown error occurred.';
+            }
+            
+            alert(errorMsg);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
 }
 
-// Calculate distance between two coordinates (Haversine formula)
+// ============================================
+// CALCULATE DISTANCE (Haversine formula)
+// ============================================
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = lat1 * Math.PI / 180;
@@ -157,7 +239,9 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// Submit attendance to Firebase
+// ============================================
+// SUBMIT ATTENDANCE TO FIREBASE
+// ============================================
 function submitAttendance(type, data) {
     if (!currentUser) {
         alert('You must be logged in to submit attendance');
@@ -166,7 +250,9 @@ function submitAttendance(type, data) {
     
     const attendanceData = {
         userId: currentUser.uid,
-        userName: currentUser.displayName || currentUser.email,
+        userName: currentUser.displayName || 
+                 (currentUser.email ? currentUser.email.split('@')[0] : 'Unknown'),
+        userEmail: currentUser.email || '',
         type: type,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         ...data
@@ -174,10 +260,13 @@ function submitAttendance(type, data) {
     
     db.collection('attendance').add(attendanceData)
         .then(() => {
-            alert(`${type} attendance submitted successfully!`);
+            alert(`✅ ${type} attendance submitted successfully!`);
+            console.log("✓ Attendance submitted:", type);
         })
         .catch((error) => {
-            console.error('Error submitting attendance:', error);
+            console.error('✗ Error submitting attendance:', error);
             alert('Failed to submit attendance: ' + error.message);
         });
 }
+
+console.log("✓ Attendance module loaded");
